@@ -82,7 +82,13 @@ const I18N_DICTIONARY = {
         'settings.language.title': 'Language',
         'settings.data.title': 'Data',
         'settings.data.desc': 'Delete all your projects and saved data.',
-        'settings.data.clearButton': 'Clear all data'
+        'settings.data.clearButton': 'Clear all data',
+        
+        // Added missing translations for UI elements seen in image
+        'main.promptPlaceholder': 'Ask about Lua...',
+        'model.selector.forgeTitle': 'Forge',
+        'model.selector.forgeDesc': 'AI model with reasoning',
+        'footer.warning': 'Forge AI can make mistakes. Verify important info.'
     },
     es: {
         'app.title': 'Forge AI',
@@ -157,7 +163,13 @@ const I18N_DICTIONARY = {
         'settings.language.title': 'Idioma',
         'settings.data.title': 'Datos',
         'settings.data.desc': 'Elimina todos tus proyectos y datos guardados.',
-        'settings.data.clearButton': 'Borrar todos los datos'
+        'settings.data.clearButton': 'Borrar todos los datos',
+
+        // Added missing translations for UI elements seen in image
+        'main.promptPlaceholder': 'Pregunta sobre Lua...',
+        'model.selector.forgeTitle': 'Forge',
+        'model.selector.forgeDesc': 'IA mixta con razonamiento',
+        'footer.warning': 'Forge AI puede cometer errores. Verifica la info importante.'
     }
 };
 
@@ -165,7 +177,9 @@ const I18n = {
 
     current: DEFAULT_LANGUAGE,
 
-    // Loads the saved language (or defaults to English) and applies it to the DOM
+    /**
+     * Loads the saved language (or defaults to English) and applies it to the DOM
+     */
     init() {
         const saved = localStorage.getItem(I18N_STORAGE_KEY);
         this.current = saved && I18N_DICTIONARY[saved] ? saved : DEFAULT_LANGUAGE;
@@ -173,7 +187,9 @@ const I18n = {
         return this.current;
     },
 
-    // Changes the language, saves it to local storage, and refreshes all visible text
+    /**
+     * Changes the language, saves it to local storage, and refreshes all visible text
+     */
     setLanguage(lang) {
         if (!I18N_DICTIONARY[lang]) return;
         this.current = lang;
@@ -181,27 +197,33 @@ const I18n = {
         this.apply();
     },
 
-    // Cycles between available languages (used for the quick toggle in the profile menu)
+    /**
+     * Cycles between available languages (used for the quick toggle in the profile menu)
+     */
     cycleLanguage() {
         var next = this.current === 'en' ? 'es' : 'en';
         this.setLanguage(next);
     },
 
-    // Returns the translated text for a given key. If the entry is a function (requires dynamic data), it executes it.
+    /**
+     * Returns the translated text for a given key. If the entry is a function (requires dynamic data), it executes it.
+     */
     t(key, ...args) {
         const entry = I18N_DICTIONARY[this.current]?.[key] ?? I18N_DICTIONARY[DEFAULT_LANGUAGE][key];
         return typeof entry === 'function' ? entry(...args) : entry;
     },
 
-    // Traverses the DOM and translates all elements with data-i18n or data-i18n-placeholder attributes
+    /**
+     * Traverses the DOM and translates all elements with data-i18n or data-i18n-placeholder attributes
+     */
     apply() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             el.innerHTML = this.t(el.dataset.i18n);
         });
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-            if (el.id !== 'prompt-input') {
-                el.placeholder = this.t(el.dataset.i18nPlaceholder);
-            }
+            // Updated to handle all placeholders, removing the specific 'prompt-input' exclusion 
+            // since we added the correct translation strings for it.
+            el.placeholder = this.t(el.dataset.i18nPlaceholder);
         });
         document.documentElement.lang = this.current;
     }
