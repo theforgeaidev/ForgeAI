@@ -1,12 +1,12 @@
 /**
  * i18n.js
- * Módulo aislado que controla el idioma de la interfaz.
- * No sabe nada de proyectos ni de storage de la app: solo traduce texto
- * y recuerda la preferencia del usuario. Cárgalo antes que app.js.
+ * Isolated module that controls the interface language.
+ * It knows nothing about projects or app storage: it only translates text
+ * and remembers the user's preference. Load it before app.js.
  */
 
 const I18N_STORAGE_KEY = 'forge-ai-language';
-const DEFAULT_LANGUAGE = 'en'; // por defecto en inglés
+const DEFAULT_LANGUAGE = 'en'; // default to English
 
 const I18N_DICTIONARY = {
     en: {
@@ -165,7 +165,7 @@ const I18n = {
 
     current: DEFAULT_LANGUAGE,
 
-    // Carga el idioma guardado (o el de por defecto) y lo aplica al DOM
+    // Loads the saved language (or defaults to English) and applies it to the DOM
     init() {
         const saved = localStorage.getItem(I18N_STORAGE_KEY);
         this.current = saved && I18N_DICTIONARY[saved] ? saved : DEFAULT_LANGUAGE;
@@ -173,7 +173,7 @@ const I18n = {
         return this.current;
     },
 
-    // Cambia el idioma, lo guarda y refresca todo el texto visible
+    // Changes the language, saves it to local storage, and refreshes all visible text
     setLanguage(lang) {
         if (!I18N_DICTIONARY[lang]) return;
         this.current = lang;
@@ -181,19 +181,19 @@ const I18n = {
         this.apply();
     },
 
-    // Cicla entre idiomas (para el botón rápido del perfil)
+    // Cycles between available languages (used for the quick toggle in the profile menu)
     cycleLanguage() {
         var next = this.current === 'en' ? 'es' : 'en';
         this.setLanguage(next);
     },
 
-    // Devuelve el texto traducido para una clave. Si es una función (con datos dinámicos), la ejecuta.
+    // Returns the translated text for a given key. If the entry is a function (requires dynamic data), it executes it.
     t(key, ...args) {
         const entry = I18N_DICTIONARY[this.current]?.[key] ?? I18N_DICTIONARY[DEFAULT_LANGUAGE][key];
         return typeof entry === 'function' ? entry(...args) : entry;
     },
 
-    // Recorre el DOM y traduce todo lo que tenga data-i18n / data-i18n-placeholder
+    // Traverses the DOM and translates all elements with data-i18n or data-i18n-placeholder attributes
     apply() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             el.innerHTML = this.t(el.dataset.i18n);
