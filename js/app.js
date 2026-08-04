@@ -535,6 +535,13 @@ async function simulateExecution() {
     if (isProcessing) return;
     var userMessage = promptInput.value.trim();
     if (!userMessage && !activeAttachment) { promptInput.placeholder = I18n.t('main.placeholderEmpty'); promptInput.focus(); return; }
+    // Se requiere sesión iniciada para enviar un prompt. Si no la hay, se
+    // pide login y el mensaje (que sigue en el textarea) se reenvía solo
+    // automáticamente una vez completado.
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+        if (typeof window.requireLogin === 'function') window.requireLogin();
+        return;
+    }
     isProcessing = true;
     var displayMessage = userMessage || (activeAttachment ? '[Archivo adjunto]' : '');
     var isFirstMessage = (activeConversationMessages.length === 0);

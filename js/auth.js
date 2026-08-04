@@ -126,6 +126,46 @@ function playEntryAnimation() {
     if (appRoot) appRoot.classList.add('play');
 }
 
+// ============================================================================
+// 3b. MODAL DE LOGIN BAJO DEMANDA
+// ============================================================================
+// La app ya está visible desde el inicio (ver DOMContentLoaded más abajo).
+// Este modal solo aparece cuando hace falta: al intentar enviar un prompt
+// sin sesión iniciada, o si el usuario decide iniciar sesión manualmente.
+window.openLoginModal = function (opts) {
+    const loginScreen = document.getElementById('login-screen');
+    if (!loginScreen) return;
+    const notice = document.getElementById('login-gate-notice');
+    if (notice) notice.classList.toggle('hidden', !(opts && opts.gated));
+    loginScreen.classList.remove('leaving', 'hidden');
+    loginScreen.style.display = 'flex';
+    // Reiniciar al paso 1 por si quedó a medias de una sesión anterior
+    window.resetFormStep && window.resetFormStep();
+    setTimeout(function () {
+        const nameInput = document.getElementById('login-name');
+        if (nameInput) nameInput.focus();
+    }, 50);
+};
+
+window.closeLoginModal = function () {
+    const loginScreen = document.getElementById('login-screen');
+    if (!loginScreen) return;
+    loginScreen.classList.add('leaving');
+    setTimeout(function () {
+        loginScreen.style.display = 'none';
+        loginScreen.classList.add('hidden');
+        loginScreen.classList.remove('leaving');
+    }, 300);
+    // Si cierran el modal sin iniciar sesión, cancelamos el envío pendiente
+    window.pendingSendAfterLogin = false;
+};
+
+// Llamado desde app.js cuando alguien intenta enviar un prompt sin sesión
+window.requireLogin = function () {
+    window.pendingSendAfterLogin = true;
+    window.openLoginModal({ gated: true });
+};
+
 function showLoginError(message) {
     const errorText = document.getElementById('otp-error');
     if (!errorText) return;
@@ -143,8 +183,8 @@ function getCurrentLoginMode() {
     return (registerTab && registerTab.classList.contains('active')) ? 'register' : 'login';
 }
 
-// Transición directa a la app (sin pasar por OTP), usada en Sign In cuando la
-// cuenta ya existe en este navegador.
+// Cierra sesión de credenciales (login o creación de cuenta) y, si el login
+// se disparó porque el usuario intentaba enviar un prompt, lo envía ahora.
 function completeLogin(name, email) {
     Auth.login(name, email);
     if (window.updateGreeting) window.updateGreeting();
@@ -155,7 +195,17 @@ function completeLogin(name, email) {
     loginScreen.classList.add('leaving');
     setTimeout(() => {
         loginScreen.style.display = 'none';
-        playEntryAnimation();
+        loginScreen.classList.add('hidden');
+        loginScreen.classList.remove('leaving');
+
+        // Si el usuario había intentado enviar un prompt antes de iniciar
+        // sesión, lo enviamos automáticamente ahora que ya está autenticado.
+        if (window.pendingSendAfterLogin) {
+            window.pendingSendAfterLogin = false;
+            if (typeof window.simulateExecution === 'function') {
+                window.simulateExecution();
+            }
+        }
     }, 350);
 }
 
@@ -308,16 +358,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginScreen = document.getElementById('login-screen');
     const loginForm = document.getElementById('login-form');
 
-    // Si ya hay un usuario guardado, entrar directo
+    // La app (el "prompt builder") se muestra siempre de entrada, con o sin
+    // sesión iniciada. El login solo se pide al intentar enviar un mensaje.
+    const curtain = document.getElementById('entry-curtain');
+    const appRoot = document.getElementById('app-root');
+    if (curtain) curtain.style.display = 'none';
+    if (appRoot) appRoot.classList.add('instant');
+
+    // El modal de login permanece oculto hasta que haga falta.
+    loginScreen.style.display = 'none';
+    loginScreen.classList.add('hidden');
+
+    // Si ya hay un usuario guardado, refrescamos su info en la UI (avatar,
+    // saludo, etc.) aunque el modal nunca se muestre.
     if (Auth.isLoggedIn()) {
-        loginScreen.style.display = 'none';
-        const curtain = document.getElementById('entry-curtain');
-        const appRoot = document.getElementById('app-root');
-        if (curtain) curtain.style.display = 'none';
-        if (appRoot) appRoot.classList.add('instant');
-    } else {
-        loginScreen.style.display = 'flex';
+        if (window.updateGreeting) window.updateGreeting();
+        if (window.updateProfileUI) window.updateProfileUI();
+        if (window.updateAvatarUI) window.updateAvatarUI();
     }
+
+    // Click fuera de la tarjeta cierra el modal (no cuenta como login)
+    loginScreen.addEventListener('click', (e) => {
+        if (e.target === loginScreen) window.closeLoginModal();
+    });
 
     // Interceptar el 'submit' del formulario (aplica para presionar Enter)
     loginForm.addEventListener('submit', (e) => {
